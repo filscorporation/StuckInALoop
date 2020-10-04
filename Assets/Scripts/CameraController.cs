@@ -29,4 +29,14 @@ public class CameraController : MonoBehaviour
 
         Camera.main.orthographicSize = baseSize / ratio * 2;
     }
+
+    public void ZoomIn()
+    {
+        baseSize = Mathf.Clamp(baseSize - 2 * SCROLL_SENSITIVITY, minSize, MaxSize);
+    }
+
+    public void ZoomOut()
+    {
+        baseSize = Mathf.Clamp(baseSize + 2 * SCROLL_SENSITIVITY, minSize, MaxSize);
+    }
 }

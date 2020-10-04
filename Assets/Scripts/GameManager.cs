@@ -26,6 +26,9 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Escape))
+            Exit();
+        
         if (damageEffectTimer > 0)
         {
             damageEffectTimer -= Time.deltaTime;
