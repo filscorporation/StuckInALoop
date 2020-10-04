@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 public class CameraController : MonoBehaviour
 {
     [SerializeField] private float minSize;
-    [SerializeField] private float maxSize;
+    [SerializeField] public float MaxSize;
     private const float SCROLL_SENSITIVITY = 0.3f;
     
     private void Update()
@@ -12,7 +12,7 @@ public class CameraController : MonoBehaviour
         float sizeDelta = Input.mouseScrollDelta.y;
         if (!Mathf.Approximately(sizeDelta, 0) && !EventSystem.current.IsPointerOverGameObject())
         {
-            Camera.main.orthographicSize = Mathf.Clamp(Camera.main.orthographicSize - sizeDelta * SCROLL_SENSITIVITY, minSize, maxSize);
+            Camera.main.orthographicSize = Mathf.Clamp(Camera.main.orthographicSize - sizeDelta * SCROLL_SENSITIVITY, minSize, MaxSize);
         }
         
         Vector3 target = GameManager.Instance.Player.GetCurrentPlanet().transform.position;

@@ -34,7 +34,8 @@ public class UIUpgradeLine : MonoBehaviour
 
     private IEnumerator ApplyUpgrade()
     {
-        yield return new WaitForSeconds(upgrade.Cost.Time);
+        if (!GameManager.Instance.FreeEverything)
+            yield return new WaitForSeconds(upgrade.Cost.Time);
         
         upgrade.Apply();
     }

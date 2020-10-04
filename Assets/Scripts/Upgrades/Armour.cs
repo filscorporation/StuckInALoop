@@ -8,6 +8,7 @@
         
         public override void Apply()
         {
+            GameManager.Instance.Player.Health += 30;
             GameManager.Instance.Player.HealthMax += 30;
         }
     }

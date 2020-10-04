@@ -7,7 +7,7 @@ using UnityEngine;
 
 public struct Cost
 {
-    public Cost(float energy, float titan, float crystals, float time)
+    public Cost(float energy = 0, float titan = 0, float crystals = 0, float time = 0)
     {
         Energy = energy;
         Titan = titan;

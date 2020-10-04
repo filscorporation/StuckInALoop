@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Spaceship : MonoBehaviour
@@ -18,13 +17,15 @@ public class Spaceship : MonoBehaviour
     
     [SerializeField] public float EnergyMax;
     private float energy = 20;
+    public float MoveEnergyToRestore = 0;
+    private float energyToRestore = 0;
     [SerializeField] public float TitanMax;
     private float titan = 3;
     [SerializeField] public float CrystalsMax;
     private float crystals;
 
     [SerializeField] public float HealthMax;
-    private float health;
+    public float Health;
 
     public float DefaultTitanPerSecond = 0.05f;
     public float TitanMiningSpeed = 0;
@@ -48,6 +49,7 @@ public class Spaceship : MonoBehaviour
 
     private void Start()
     {
+        Health = HealthMax;
         float minDist = -1;
         foreach (Planet planet in FindObjectsOfType<Planet>())
         {
@@ -83,6 +85,8 @@ public class Spaceship : MonoBehaviour
 
     private void UpdateSpaceship()
     {
+        UpdateCurrentPlanetDangerLevelEffect();
+        
         energy += DefaultEnergyPerSecond * Time.deltaTime;
         if (energy > EnergyMax)
             energy = EnergyMax;
@@ -104,12 +108,46 @@ public class Spaceship : MonoBehaviour
                 currentPlanet.Titan -= TitanMiningSpeed * Time.deltaTime;
             }
         }
+
+        CheckIfDead();
+    }
+
+    private void CheckIfDead()
+    {
+        if (Health <= 0)
+        {
+            Dead();
+        }
+    }
+
+    private void Dead()
+    {
+        Debug.Log("Dead");
+    }
+
+    private void UpdateCurrentPlanetDangerLevelEffect()
+    {
+        if (currentPlanet != null && state != State.Move && currentPlanet.DangerLevel != DangerLevel.None)
+        {
+            switch (currentPlanet.DangerLevel)
+            {
+                case DangerLevel.Low:
+                    Health -= 1 * Time.deltaTime;
+                    break;
+                case DangerLevel.High:
+                    Health -= 3 * Time.deltaTime;
+                    break;
+                case DangerLevel.None:
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
     }
 
     private void UpdateUI()
     {
         uiResources.SetEnegry(energy, EnergyMax);
-        uiResources.SetHealth(health, HealthMax);
+        uiResources.SetHealth(Health, HealthMax);
         uiResources.SetTitan(titan, TitanMax);
         uiResources.SetCrystals(crystals, CrystalsMax);
     }
@@ -182,6 +220,7 @@ public class Spaceship : MonoBehaviour
             if (IsCrossing(currentPlanet.transform.position, nextPlanet.transform.position, startMovePoint, transform.position))
                 clockwise = !clockwise;
             currentPlanet = nextPlanet;
+            CheckWin();
             nextPlanet = null;
             lastDistanceToTarget = -1;
             angle = OrbitPointToAngle(transform.position);
@@ -193,6 +232,14 @@ public class Spaceship : MonoBehaviour
         }
 
         lastDistanceToTarget = dist;
+    }
+
+    private void CheckWin()
+    {
+        if (currentPlanet.IsHomePlanet)
+        {
+            GameManager.Instance.Win();
+        }
     }
 
     public void MoveToPlanet(Planet planet)
@@ -233,8 +280,34 @@ public class Spaceship : MonoBehaviour
         return currentPlanet;
     }
 
+    public void TakeDamage(float damage)
+    {
+        Health -= damage;
+    }
+
+    public IEnumerator Repair(float time)
+    {
+        float healthToRepair = HealthMax - Health;
+        float step = healthToRepair / time;
+        while (healthToRepair > 0)
+        {
+            healthToRepair -= step * Time.deltaTime;
+            Health += step * Time.deltaTime;
+            if (Health > HealthMax)
+            {
+                Health = HealthMax;
+                yield break;
+            }
+
+            yield return null;
+        }
+    }
+
     public bool TryPayResources(Cost cost)
     {
+        if (GameManager.Instance.FreeEverything)
+            return true;
+        
         if (energy >= cost.Energy && titan >= cost.Titan && crystals >= cost.Crystals)
         {
             energy -= cost.Energy;
@@ -252,6 +325,7 @@ public class Spaceship : MonoBehaviour
     private IEnumerator DrainEnergy()
     {
         float cost = EnergyToMoveToPlanet(nextPlanet);
+        energyToRestore = cost * MoveEnergyToRestore;
         float dist = Vector3.Distance(transform.position, nextPlanet.transform.position);
         float time = dist / forwardSpeed * 0.8f;
         float drainStep = cost / time;
@@ -261,6 +335,14 @@ public class Spaceship : MonoBehaviour
             energy -= drainStep * Time.deltaTime;
             time -= Time.deltaTime;
             yield return null;
+        }
+
+        if (!Mathf.Approximately(energyToRestore, 0))
+        {
+            energy += energyToRestore;
+            if (energy > EnergyMax)
+                energy = EnergyMax;
+            energyToRestore = 0;
         }
     }
 
@@ -285,11 +367,11 @@ public class Spaceship : MonoBehaviour
         return Mathf.Atan2(point.x - currentPlanet.transform.position.x, point.y - currentPlanet.transform.position.y) * Mathf.Rad2Deg;
     }
 
-    private float EnergyToMoveToPlanet(Planet planet)
+    public float EnergyToMoveToPlanet(Planet planet)
     {
         float distance = Vector3.Distance(currentPlanet.transform.position, planet.transform.position);
 
-        return distance * currentPlanet.Mass;
+        return distance * currentPlanet.Mass / 2;
     }
 
     private float ClosestDistanceToTanget()

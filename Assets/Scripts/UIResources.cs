@@ -11,22 +11,22 @@ public class UIResources : MonoBehaviour
 
     public void SetEnegry(float value, float max)
     {
-        energyText.text = $"{Mathf.RoundToInt(value)}/{Mathf.RoundToInt(max)}";
+        energyText.text = $"{Mathf.FloorToInt(value)}/{Mathf.FloorToInt(max)}";
     }
     
     public void SetHealth(float value, float max)
     {
-        healthText.text = $"{Mathf.RoundToInt(value)}/{Mathf.RoundToInt(max)}";
+        healthText.text = $"{Mathf.FloorToInt(value)}/{Mathf.FloorToInt(max)}";
     }
     
     public void SetTitan(float value, float max)
     {
-        titanText.text = $"{Mathf.RoundToInt(value)}/{Mathf.RoundToInt(max)}";
+        titanText.text = $"{Mathf.FloorToInt(value)}/{Mathf.FloorToInt(max)}";
     }
     
     public void SetCrystals(float value, float max)
     {
-        crystalsText.text = $"{Mathf.RoundToInt(value)}/{Mathf.RoundToInt(max)}";
+        crystalsText.text = $"{Mathf.FloorToInt(value)}/{Mathf.FloorToInt(max)}";
     }
     
     public void NotEnoughEnergy()
