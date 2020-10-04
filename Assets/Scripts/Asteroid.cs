@@ -1,9 +1,10 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using Random = UnityEngine.Random;
 
 public class Asteroid : MonoBehaviour
 {
+    [SerializeField] private float maxHealth;
+    private float health;
     [SerializeField] private float speed;
     [SerializeField] private float minDamage;
     [SerializeField] private float maxDamage;
@@ -16,6 +17,7 @@ public class Asteroid : MonoBehaviour
     
     private void Start()
     {
+        health = maxHealth;
         rotationSpeed = Random.Range(speed * 0.5f, speed * 1.5f) / Mathf.PI;
         rotationDirection = Random.Range(0, 1f) >= 0.5f ? -1 : 1;
     }
@@ -39,6 +41,13 @@ public class Asteroid : MonoBehaviour
         {
             spaceship.TakeDamage(Random.Range(minDamage, maxDamage));
         }
+
+        if (other.gameObject.GetComponent<Bullet>() != null)
+        {
+            TakeDamage(1f);
+            return;
+        }
+        
         Destroy();
     }
 
@@ -46,5 +55,15 @@ public class Asteroid : MonoBehaviour
     {
         Destroy(Instantiate(destroyEffect, transform.position, transform.rotation), 3f);
         Destroy(gameObject);
+    }
+
+    private void TakeDamage(float damage)
+    {
+        health -= damage;
+        if (health <= 0)
+        {
+            GameManager.Instance.Player.Recycle(maxHealth);
+            Destroy();
+        }
     }
 }

@@ -96,8 +96,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb893da295f94c49a2178b8c17479765, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxHealth: 1
   speed: 3
-  minDamage: 2
+  minDamage: 3
   maxDamage: 5
   Rarity: 5
   destroyEffect: {fileID: 4316262634705800874, guid: 94e5a18baf4113844b5639f459efefc7,
@@ -123,7 +124,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 0
+  m_Constraints: 7
 --- !u!58 &7575634512555808762
 CircleCollider2D:
   m_ObjectHideFlags: 0

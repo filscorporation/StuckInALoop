@@ -2,13 +2,16 @@
 {
     public class Drill : Upgrade
     {
+        public override int Level => 1;
         public override string Name => nameof(Drill);
-        public override string Description => "Additionally mines 1 titan per 3 seconds from planet";
+        public override string Description => "Mines 1 per 3 seconds from planet";
         public override Cost Cost => new Cost(5, 3, 0, 5);
         
         public override void Apply()
         {
             GameManager.Instance.Player.TitanMiningSpeed += 0.33f;
+            GameManager.Instance.Player.CrystalMiningSpeed += 0.33f;
+            GameManager.Instance.Player.EnableDrill();
         }
     }
 }

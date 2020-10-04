@@ -12,26 +12,29 @@ public class Spaceship : MonoBehaviour
     }
 
     private State state = State.Orbit;
-
+    public bool IsDead = false;
+    
     [SerializeField] private UIResources uiResources;
     
     [SerializeField] public float EnergyMax;
-    private float energy = 20;
+    private float energy = 5;
     public float MoveEnergyToRestore = 0;
     private float energyToRestore = 0;
     [SerializeField] public float TitanMax;
     private float titan = 3;
     [SerializeField] public float CrystalsMax;
-    private float crystals;
+    private float crystals = 0.1f;
 
     [SerializeField] public float HealthMax;
     public float Health;
 
     public float DefaultTitanPerSecond = 0.05f;
     public float TitanMiningSpeed = 0;
+    public float CrystalMiningSpeed = 0;
     public float DefaultEnergyPerSecond = 0.2f;
     
-    [SerializeField] private float speed;
+    [SerializeField] public float Speed;
+    public float TravelCostDiscount = 0;
     private bool clockwise = true;
     
     private Planet currentPlanet;
@@ -44,8 +47,20 @@ public class Spaceship : MonoBehaviour
     private float lastDistanceToTarget = -1;
     private Vector2 startMovePoint;
 
+    public bool CanRecycle = false;
+    private bool canDrill = false;
+    [SerializeField] private GameObject canon;
+    [SerializeField] private GameObject drillIdle;
+    [SerializeField] private GameObject drillWorking;
+    [SerializeField] public GameObject Storage;
+    [SerializeField] public GameObject Accelerator;
+
+    [SerializeField] private AudioClip deathSound;
+    [SerializeField] private AudioClip winSound;
+    [SerializeField] private AudioClip upgradeSound;
+
     private Vector3 forward => -transform.right;
-    private float forwardSpeed => speed / Mathf.PI / 2;
+    private float forwardSpeed => Speed / Mathf.PI / 2;
 
     private void Start()
     {
@@ -95,25 +110,54 @@ public class Spaceship : MonoBehaviour
         if (titan > TitanMax)
             titan = TitanMax;
 
-        if (currentPlanet != null && currentPlanet.Titan > 0 && !Mathf.Approximately(titan, TitanMax))
+        bool drilled = false;
+        if (canDrill)
         {
-            if (currentPlanet.Titan < TitanMiningSpeed * Time.deltaTime)
+            if (state != State.Move && currentPlanet != null)
             {
-                titan += currentPlanet.Titan;
-                currentPlanet.Titan = 0;
-            }
-            else
-            {
-                titan += TitanMiningSpeed * Time.deltaTime;
-                currentPlanet.Titan -= TitanMiningSpeed * Time.deltaTime;
+                if (currentPlanet.Titan > 0 && !Mathf.Approximately(titan, TitanMax))
+                {
+                    drilled = true;
+                    if (currentPlanet.Titan < TitanMiningSpeed * Time.deltaTime)
+                    {
+                        titan += currentPlanet.Titan;
+                        currentPlanet.Titan = 0;
+                    }
+                    else
+                    {
+                        titan += TitanMiningSpeed * Time.deltaTime;
+                        currentPlanet.Titan -= TitanMiningSpeed * Time.deltaTime;
+                    }
+                }
+
+                if (currentPlanet.Crystals > 0 && !Mathf.Approximately(crystals, CrystalsMax))
+                {
+                    drilled = true;
+                    if (currentPlanet.Crystals < CrystalMiningSpeed * Time.deltaTime)
+                    {
+                        crystals += currentPlanet.Crystals;
+                        currentPlanet.Crystals = 0;
+                    }
+                    else
+                    {
+                        crystals += CrystalMiningSpeed * Time.deltaTime;
+                        currentPlanet.Crystals -= CrystalMiningSpeed * Time.deltaTime;
+                    }
+                }
             }
         }
+        
+        drillIdle.SetActive(canDrill && !drilled);
+        drillWorking.SetActive(canDrill && drilled);
 
         CheckIfDead();
     }
 
     private void CheckIfDead()
     {
+        if (IsDead)
+            return;
+        
         if (Health <= 0)
         {
             Dead();
@@ -122,7 +166,19 @@ public class Spaceship : MonoBehaviour
 
     private void Dead()
     {
-        Debug.Log("Dead");
+        IsDead = true;
+        GetComponent<AudioSource>().PlayOneShot(deathSound);
+        GameManager.Instance.Lose();
+    }
+
+    public void Won()
+    {
+        GetComponent<AudioSource>().PlayOneShot(winSound);
+    }
+
+    public void Upgrade()
+    {
+        GetComponent<AudioSource>().PlayOneShot(upgradeSound);
     }
 
     private void UpdateCurrentPlanetDangerLevelEffect()
@@ -132,10 +188,10 @@ public class Spaceship : MonoBehaviour
             switch (currentPlanet.DangerLevel)
             {
                 case DangerLevel.Low:
-                    Health -= 1 * Time.deltaTime;
+                    TakeDamage(1 * Time.deltaTime);
                     break;
                 case DangerLevel.High:
-                    Health -= 3 * Time.deltaTime;
+                    TakeDamage(3 * Time.deltaTime);
                     break;
                 case DangerLevel.None:
                 default:
@@ -158,7 +214,7 @@ public class Spaceship : MonoBehaviour
             return;
         
         float r = currentPlanet.GetOrbit();
-        float angleSpeed = speed / r * Time.deltaTime * 10;
+        float angleSpeed = Speed / r * Time.deltaTime * 10;
         angle = (angle + (clockwise ? angleSpeed : -angleSpeed)) % 360;
         Vector3 offset = AngleToOrbitPoint(angle, r);
         transform.position = currentPlanet.transform.position + offset;
@@ -283,6 +339,25 @@ public class Spaceship : MonoBehaviour
     public void TakeDamage(float damage)
     {
         Health -= damage;
+        GameManager.Instance.ShowDamageEffect();
+    }
+
+    public void Recycle(float amount)
+    {
+        titan += amount;
+        if (titan > TitanMax)
+            titan = TitanMax;
+    }
+
+    public void EnableCanon()
+    {
+        canon.SetActive(true);
+    }
+
+    public void EnableDrill()
+    {
+        canDrill = true;
+        drillIdle.SetActive(true);
     }
 
     public IEnumerator Repair(float time)
@@ -305,7 +380,7 @@ public class Spaceship : MonoBehaviour
 
     public bool TryPayResources(Cost cost)
     {
-        if (GameManager.Instance.FreeEverything)
+        if (GameManager.Instance.Cheat)
             return true;
         
         if (energy >= cost.Energy && titan >= cost.Titan && crystals >= cost.Crystals)
@@ -371,7 +446,7 @@ public class Spaceship : MonoBehaviour
     {
         float distance = Vector3.Distance(currentPlanet.transform.position, planet.transform.position);
 
-        return distance * currentPlanet.Mass / 2;
+        return distance * currentPlanet.Mass / 2 * (1 - TravelCostDiscount);
     }
 
     private float ClosestDistanceToTanget()

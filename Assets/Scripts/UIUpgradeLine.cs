@@ -34,9 +34,10 @@ public class UIUpgradeLine : MonoBehaviour
 
     private IEnumerator ApplyUpgrade()
     {
-        if (!GameManager.Instance.FreeEverything)
+        if (!GameManager.Instance.Cheat)
             yield return new WaitForSeconds(upgrade.Cost.Time);
-        
+
+        GameManager.Instance.Player.Upgrade();
         upgrade.Apply();
     }
 }

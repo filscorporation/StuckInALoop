@@ -49,10 +49,11 @@ public abstract class Upgrade
             .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(Upgrade))))
         {
             Upgrade skill = (Upgrade)Activator.CreateInstance(type);
-            Upgrade.UpgradeDictionary[skill.Name] = skill;
+            UpgradeDictionary[skill.Name] = skill;
         }
     }
     
+    public abstract int Level { get; }
     public abstract string Name { get; }
     public abstract string Description { get; }
     public abstract Cost Cost { get; }

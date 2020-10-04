@@ -2,8 +2,9 @@
 {
     public class CrystalScanner : Upgrade
     {
+        public override int Level => 3;
         public override string Name => "Crystal Scanner";
-        public override string Description => "Shows you direction of your home planet";
+        public override string Description => "Shows you direction to your home planet";
         public override Cost Cost => new Cost(20, 30, 5, 20);
         public override void Apply()
         {

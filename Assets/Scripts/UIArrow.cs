@@ -15,6 +15,7 @@ public class UIArrow : MonoBehaviour
     public void Initialize(Transform _target)
     {
         transform.SetParent(FindObjectOfType<Canvas>().transform);
+        transform.SetAsFirstSibling();
         target = _target;
     }
 }

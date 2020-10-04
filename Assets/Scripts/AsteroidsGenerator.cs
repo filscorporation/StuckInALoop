@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -10,6 +9,9 @@ public class AsteroidsGenerator : MonoBehaviour
     [SerializeField] private List<GameObject> prefabs;
     [SerializeField] private float minSpawnTime;
     [SerializeField] private float maxSpawnTime;
+    [SerializeField] private float spawnTimeStep = 1 / 60f;
+    private const float MIN_MIN = 2f;
+    private const float MIN_MAX = 5f;
     private List<float> spawnSectors = new List<float>();
     
     private const float DEFAULT_OFFSET = 2f;
@@ -17,13 +19,22 @@ public class AsteroidsGenerator : MonoBehaviour
     private void Start()
     {
         float sum = prefabs.Select(p => p.GetComponent<Asteroid>().Rarity).Sum();
-        float stepSum = 0;
+        float stepSum = sum;
         foreach (GameObject prefab in prefabs)
         {
-            stepSum += prefab.GetComponent<Asteroid>().Rarity;
             spawnSectors.Add(stepSum / sum);
+            stepSum -= prefab.GetComponent<Asteroid>().Rarity;
         }
         StartCoroutine(SpawnCoroutine());
+    }
+
+    private void Update()
+    {
+        if (minSpawnTime > MIN_MIN)
+            minSpawnTime -= spawnTimeStep * Time.deltaTime;
+        
+        if (maxSpawnTime > MIN_MAX)
+            maxSpawnTime -= spawnTimeStep * Time.deltaTime;
     }
 
     private IEnumerator SpawnCoroutine()
@@ -41,7 +52,7 @@ public class AsteroidsGenerator : MonoBehaviour
         float seed = Random.Range(0, 1f);
         for (int i = 0; i < spawnSectors.Count; i++)
         {
-            if (seed <= spawnSectors[i])
+            if (seed >= spawnSectors[i])
             {
                 GameObject go = Instantiate(prefabs[i]);
                 go.transform.position = RandomPointOutside();

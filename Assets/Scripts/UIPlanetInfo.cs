@@ -63,7 +63,7 @@ public class UIPlanetInfo : MonoBehaviour
 
     private IEnumerator HideCoroutine()
     {
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.3f);
         Destroy(gameObject);
     }
 }

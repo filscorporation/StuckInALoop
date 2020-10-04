@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class UIUpgradeMenu : MonoBehaviour
@@ -20,14 +21,13 @@ public class UIUpgradeMenu : MonoBehaviour
         gameObject.SetActive(true);
         
         float y = 0;
-        foreach (Upgrade upgrade in Upgrade.UpgradeDictionary.Values)
+        foreach (var pair in Upgrade.UpgradeDictionary.OrderBy(p => p.Value.Level))
         {
-            lines.Add(CreateUpgradeLine(upgrade, -y));
+            lines.Add(CreateUpgradeLine(pair.Value, -y));
             y += (LINE_HEIGHT + LINE_SPACING);
         }
 
         y -= LINE_SPACING;
-        scrollContentRect.anchoredPosition = Vector2.zero;
         scrollContentRect.sizeDelta = new Vector2(scrollContentRect.sizeDelta.x, y);
     }
 
