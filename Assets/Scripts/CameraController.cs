@@ -13,7 +13,7 @@ public class CameraController : MonoBehaviour
         float sizeDelta = Input.mouseScrollDelta.y;
         if (!Mathf.Approximately(sizeDelta, 0) && !EventSystem.current.IsPointerOverGameObject())
         {
-            baseSize = Mathf.Clamp(Camera.main.orthographicSize - sizeDelta * SCROLL_SENSITIVITY, minSize, MaxSize);
+            baseSize = Mathf.Clamp(baseSize - sizeDelta * SCROLL_SENSITIVITY, minSize, MaxSize);
         }
         
         Vector3 target = GameManager.Instance.Player.GetCurrentPlanet().transform.position;

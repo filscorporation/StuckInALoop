@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class UIUpgradeMenu : MonoBehaviour
 {
@@ -9,26 +12,52 @@ public class UIUpgradeMenu : MonoBehaviour
     private const float LINE_SPACING = 20f;
     [SerializeField] private GameObject uiUpgradeLinePrefab;
     [SerializeField] private RectTransform scrollContentRect;
+    [SerializeField] private Toggle showInstalledToggle;
     
-    public void ShowHide()
+    private void Update()
     {
-        if (gameObject.activeSelf)
+        if (Input.GetMouseButtonDown(0) && gameObject.activeSelf)
         {
-            Hide();
-            return;
+            RectTransform rt = GetComponent<RectTransform>();
+            Vector2 localMousePosition = rt.InverseTransformPoint(Input.mousePosition);
+            if (!rt.rect.Contains(localMousePosition))
+            {
+                ShowHide();
+            }
         }
-        
-        gameObject.SetActive(true);
+    }
+
+    public void Rebuild()
+    {
+        Clear();
         
         float y = 0;
+        bool showInstalled = showInstalledToggle.isOn;
         foreach (var pair in Upgrade.UpgradeDictionary.OrderBy(p => p.Value.Level))
         {
+            if (!showInstalled && pair.Value.Installed)
+                continue;
             lines.Add(CreateUpgradeLine(pair.Value, -y));
             y += (LINE_HEIGHT + LINE_SPACING);
         }
 
         y -= LINE_SPACING;
         scrollContentRect.sizeDelta = new Vector2(scrollContentRect.sizeDelta.x, y);
+    }
+
+    public void ShowHide()
+    {
+        if (gameObject.activeSelf)
+        {
+            Clear();
+            gameObject.SetActive(false);
+            
+            return;
+        }
+        
+        gameObject.SetActive(true);
+        
+        Rebuild();
     }
 
     private UIUpgradeLine CreateUpgradeLine(Upgrade upgrade, float y)
@@ -46,13 +75,12 @@ public class UIUpgradeMenu : MonoBehaviour
         return line;
     }
 
-    private void Hide()
+    private void Clear()
     {
         foreach (UIUpgradeLine line in lines)
         {
             Destroy(line.gameObject);
         }
         lines.Clear();
-        gameObject.SetActive(false);
     }
 }

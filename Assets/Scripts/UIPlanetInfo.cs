@@ -11,19 +11,15 @@ public class UIPlanetInfo : MonoBehaviour
     [SerializeField] private Image dangerIcon;
     [SerializeField] private Sprite homeIcon;
     [SerializeField] private Text travelCostText;
+    [SerializeField] private Text massText;
 
-    private RectTransform rectTransform;
-    
     public void Initialize(Planet planet)
     {
-        rectTransform = GetComponent<RectTransform>();
+        RectTransform rectTransform = GetComponent<RectTransform>();
         transform.SetParent(FindObjectOfType<Canvas>().transform);
-        int side = planet.transform.position.x > GameManager.Instance.Player.transform.position.x ? -1 : 1;
-        if (GameManager.Instance.Player.GetCurrentPlanet() == planet)
-            side = -side;
-        rectTransform.pivot = new Vector2(side == 1 ? 0 : 1, 0.5f);
-        transform.position = Camera.main.WorldToScreenPoint(planet.transform.position + new Vector3(side, 0));
-        
+        rectTransform.anchoredPosition = Vector2.zero;
+        transform.localScale = Vector3.one;
+
         titanText.text = Mathf.CeilToInt(planet.Titan).ToString();
         crystalsText.text = Mathf.CeilToInt(planet.Crystals).ToString();
         if (planet.IsHomePlanet)
@@ -37,6 +33,7 @@ public class UIPlanetInfo : MonoBehaviour
         }
 
         travelCostText.text = Mathf.CeilToInt(GameManager.Instance.Player.EnergyToMoveToPlanet(planet)).ToString();
+        massText.text = $"Mass: {planet.Mass}";
     }
 
     public void Refresh()
@@ -46,12 +43,6 @@ public class UIPlanetInfo : MonoBehaviour
 
     public void UpdateValues(Planet planet)
     {
-        int side = planet.transform.position.x > GameManager.Instance.Player.transform.position.x ? -1 : 1;
-        if (GameManager.Instance.Player.GetCurrentPlanet() == planet)
-            side = -side;
-        rectTransform.pivot = new Vector2(side == 1 ? 0 : 1, 0.5f);
-        transform.position = Camera.main.WorldToScreenPoint(planet.transform.position + new Vector3(side, 0));
-        
         titanText.text = Mathf.RoundToInt(planet.Titan).ToString();
         crystalsText.text = Mathf.RoundToInt(planet.Crystals).ToString();
     }
