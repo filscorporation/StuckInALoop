@@ -25,7 +25,7 @@ public class Asteroid : MonoBehaviour
     private void Update()
     {
         transform.position += Direction * (speed * Time.deltaTime);
-        transform.eulerAngles += new Vector3(0, 0, rotationDirection * rotationSpeed);
+        transform.eulerAngles += new Vector3(0, 0, rotationDirection * rotationSpeed * Time.deltaTime * 100);
 
         Vector2 pos = Camera.main.WorldToScreenPoint(transform.position);
         if (pos.x < -Screen.width || pos.x > 2 * Screen.width || pos.y < -Screen.height || pos.y > 2 * Screen.height)

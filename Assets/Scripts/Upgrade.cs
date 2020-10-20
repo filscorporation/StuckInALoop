@@ -20,6 +20,27 @@ public struct Cost
     public float Crystals;
     public float Time;
 
+    public string RelativeToString(Cost resources)
+    {
+        const string ok = "white";
+        const string not = "red";
+        
+        StringBuilder sb = new StringBuilder();
+        if (!Mathf.Approximately(Energy, 0))
+            sb.Append($"<color={(Energy > resources.Energy ? not : ok)}>Energy: {Energy}</color>, ");
+        if (!Mathf.Approximately(Titan, 0))
+            sb.Append($"<color={(Titan > resources.Titan ? not : ok)}>Titan: {Titan}</color>, ");
+        if (!Mathf.Approximately(Crystals, 0))
+            sb.Append($"<color={(Crystals > resources.Crystals ? not : ok)}>Crystals: {Crystals}</color>, ");
+        if (!Mathf.Approximately(Time, 0))
+            sb.Append($"<color={ok}>Time: {Time}</color>, ");
+        if (sb.Length == 0)
+            return "Nothing";
+        sb.Remove(sb.Length - 2, 2);
+
+        return sb.ToString();
+    }
+
     public override string ToString()
     {
         StringBuilder sb = new StringBuilder();

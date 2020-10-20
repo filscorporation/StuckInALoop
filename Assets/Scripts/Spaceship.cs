@@ -62,6 +62,8 @@ public class Spaceship : MonoBehaviour
     private Vector3 forward => -transform.right;
     private float forwardSpeed => Speed / Mathf.PI / 2;
 
+    public Cost Resources => new Cost(energy, titan, crystals, 0);
+
     private void Start()
     {
         Health = HealthMax;

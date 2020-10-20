@@ -15,7 +15,7 @@ public class UIUpgradeLine : MonoBehaviour
         
         descriptionText.text = $"{upgrade.Name}: {upgrade.Description}";
         descriptionText.color = upgrade.Installed ? Color.gray : Color.white;
-        costText.text = $"Cost: {upgrade.Cost}";
+        costText.text = $"Cost: {(upgrade.Installed ? upgrade.Cost.ToString() : upgrade.Cost.RelativeToString(GameManager.Instance.Player.Resources))}";
         costText.color = upgrade.Installed ? Color.gray : Color.white;
         GetComponent<Button>().interactable = !_upgrade.Installed;
     }
@@ -28,6 +28,7 @@ public class UIUpgradeLine : MonoBehaviour
             GameManager.Instance.StartCoroutine(ApplyUpgrade());
             GetComponent<Button>().interactable = false;
             descriptionText.color = Color.gray;
+            costText.text = $"Cost: {upgrade.Cost.ToString()}";
             costText.color = Color.gray;
         }
     }
