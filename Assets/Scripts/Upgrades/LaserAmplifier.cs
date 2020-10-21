@@ -6,9 +6,9 @@
         public override string Name => "Laser Amplifier";
         public override string Description => "Increse your titan mining speed by 1 per second";
         public override Cost Cost => new Cost(25, 10, 0, 0);
-        public override void Apply()
+        public override void Apply(Spaceship player)
         {
-            GameManager.Instance.Player.TitanMiningSpeed += 1;
+            player.TitanMiningSpeed += 1;
         }
     }
 }

@@ -7,9 +7,9 @@
         public override string Description => "Increase your energy generation speed by 1 per second";
         public override Cost Cost => new Cost(15, 15, 2, 12);
         
-        public override void Apply()
+        public override void Apply(Spaceship player)
         {
-            GameManager.Instance.Player.DefaultEnergyPerSecond += 1f;
+            player.DefaultEnergyPerSecond += 1f;
         }
     }
 }

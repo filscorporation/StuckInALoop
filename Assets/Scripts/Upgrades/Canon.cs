@@ -7,9 +7,9 @@
         public override string Description => "Enables canon: 1 energy per shot, right click to shot";
         public override Cost Cost => new Cost(5, 10, 0, 5);
         
-        public override void Apply()
+        public override void Apply(Spaceship player)
         {
-            GameManager.Instance.Player.EnableCanon();
+            player.EnableCanon();
         }
     }
 }

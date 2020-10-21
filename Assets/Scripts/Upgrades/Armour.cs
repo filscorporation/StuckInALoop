@@ -7,9 +7,9 @@
         public override string Description => "Gives your ship +20 max health";
         public override Cost Cost => new Cost(3, 14, 0, 8);
         
-        public override void Apply()
+        public override void Apply(Spaceship player)
         {
-            GameManager.Instance.Player.HealthMax += 20;
+            player.HealthMax += 20;
         }
     }
 }

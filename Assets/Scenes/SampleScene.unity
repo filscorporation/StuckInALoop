@@ -18718,7 +18718,7 @@ MonoBehaviour:
   EnergyMax: 20
   MoveEnergyToRestore: 0
   TitanMax: 10
-  CrystalsMax: 5
+  CrystalsMax: 2
   HealthMax: 20
   Health: 0
   DefaultTitanPerSecond: 0.05

@@ -1,13 +1,35 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 public class UIUpgradeLine : MonoBehaviour
 {
     [SerializeField] private Text descriptionText;
     [SerializeField] private Text costText;
+    [SerializeField] private GameObject underConstructionIcon;
+    [SerializeField] private Text timeLeftText;
 
     private Upgrade upgrade;
+
+    private void Update()
+    {
+        if (upgrade.TimeLeft > 0)
+        {
+            if (!timeLeftText.gameObject.activeSelf)
+            {
+                timeLeftText.gameObject.SetActive(true);
+                underConstructionIcon.SetActive(true);
+            }
+            timeLeftText.text = upgrade.TimeLeft.ToString("F1");
+        }
+        else
+        {
+            if (timeLeftText.gameObject.activeSelf)
+            {
+                timeLeftText.gameObject.SetActive(false);
+                underConstructionIcon.SetActive(false);
+            }
+        }
+    }
 
     public void Initialize(UIUpgradeMenu menu, Upgrade _upgrade)
     {
@@ -25,20 +47,11 @@ public class UIUpgradeLine : MonoBehaviour
         if (GameManager.Instance.Player.TryPayResources(upgrade.Cost))
         {
             upgrade.Installed = true;
-            GameManager.Instance.StartCoroutine(ApplyUpgrade());
+            GameManager.Instance.Player.ApplyUpgrade(upgrade);
             GetComponent<Button>().interactable = false;
             descriptionText.color = Color.gray;
             costText.text = $"Cost: {upgrade.Cost.ToString()}";
             costText.color = Color.gray;
         }
-    }
-
-    private IEnumerator ApplyUpgrade()
-    {
-        if (!GameManager.Instance.Cheat)
-            yield return new WaitForSeconds(upgrade.Cost.Time);
-
-        GameManager.Instance.Player.Upgrade();
-        upgrade.Apply();
     }
 }

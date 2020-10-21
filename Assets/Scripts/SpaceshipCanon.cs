@@ -12,6 +12,9 @@ public class SpaceshipCanon : MonoBehaviour
 
     private void Update()
     {
+        if (Mathf.Approximately(Time.timeScale, 0))
+            return;
+
         Vector2 mp = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         transform.eulerAngles = new Vector3(0, 0,
             Mathf.Atan2(transform.position.y - mp.y, transform.position.x - mp.x) * Mathf.Rad2Deg + 180);

@@ -7,9 +7,9 @@
         public override string Description => "Increase max energy to be stored by 20";
         public override Cost Cost => new Cost(20, 10, 0, 15);
         
-        public override void Apply()
+        public override void Apply(Spaceship player)
         {
-            GameManager.Instance.Player.EnergyMax += 20;
+            player.EnergyMax += 20;
         }
     }
 }

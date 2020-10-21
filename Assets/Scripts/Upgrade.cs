@@ -27,11 +27,11 @@ public struct Cost
         
         StringBuilder sb = new StringBuilder();
         if (!Mathf.Approximately(Energy, 0))
-            sb.Append($"<color={(Energy > resources.Energy ? not : ok)}>Energy: {Energy}</color>, ");
+            sb.Append($"<color={(Energy > resources.Energy + Mathf.Epsilon ? not : ok)}>Energy: {Energy}</color>, ");
         if (!Mathf.Approximately(Titan, 0))
-            sb.Append($"<color={(Titan > resources.Titan ? not : ok)}>Titan: {Titan}</color>, ");
+            sb.Append($"<color={(Titan > resources.Titan + Mathf.Epsilon ? not : ok)}>Titan: {Titan}</color>, ");
         if (!Mathf.Approximately(Crystals, 0))
-            sb.Append($"<color={(Crystals > resources.Crystals ? not : ok)}>Crystals: {Crystals}</color>, ");
+            sb.Append($"<color={(Crystals > resources.Crystals + Mathf.Epsilon ? not : ok)}>Crystals: {Crystals}</color>, ");
         if (!Mathf.Approximately(Time, 0))
             sb.Append($"<color={ok}>Time: {Time}</color>, ");
         if (sb.Length == 0)
@@ -78,7 +78,8 @@ public abstract class Upgrade
     public abstract string Name { get; }
     public abstract string Description { get; }
     public abstract Cost Cost { get; }
-    public abstract void Apply();
+    public abstract void Apply(Spaceship player);
 
     public bool Installed = false;
+    public float TimeLeft = 0;
 }

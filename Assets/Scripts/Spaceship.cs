@@ -178,9 +178,24 @@ public class Spaceship : MonoBehaviour
         GetComponent<AudioSource>().PlayOneShot(winSound);
     }
 
-    public void Upgrade()
+    public void ApplyUpgrade(Upgrade upgrade)
     {
+        StartCoroutine(ApplyUpgradeCoroutine(upgrade));
         GetComponent<AudioSource>().PlayOneShot(upgradeSound);
+    }
+
+    private IEnumerator ApplyUpgradeCoroutine(Upgrade upgrade)
+    {
+        upgrade.TimeLeft = upgrade.Cost.Time;
+        
+        while (!GameManager.Instance.Cheat && upgrade.TimeLeft > 0)
+        {
+            yield return null;
+            upgrade.TimeLeft -= Time.deltaTime;
+        }
+
+        upgrade.TimeLeft = 0;
+        upgrade.Apply(this);
     }
 
     private void UpdateCurrentPlanetDangerLevelEffect()

@@ -6,9 +6,9 @@
         public override string Name => "Gravitational Generator";
         public override string Description => "Restores half of the energy you spent to travel to planet";
         public override Cost Cost => new Cost(25, 10, 0, 8);
-        public override void Apply()
+        public override void Apply(Spaceship player)
         {
-            GameManager.Instance.Player.MoveEnergyToRestore += 0.5f;
+            player.MoveEnergyToRestore += 0.5f;
         }
     }
 }
