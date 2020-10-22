@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using DataManagement;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 public enum DangerLevel
@@ -8,7 +11,7 @@ public enum DangerLevel
     High,
 }
 
-public class Planet : MonoBehaviour
+public class Planet : DataObject
 {
     public float Titan;
     [SerializeField] private int titanMax;
@@ -25,6 +28,9 @@ public class Planet : MonoBehaviour
     {
         Titan = titanMax;
         Crystals = crystalsMax;
+
+        index = planets.Count;
+        planets.Add(this);
     }
 
     private void Update()
@@ -71,4 +77,43 @@ public class Planet : MonoBehaviour
         
         GameManager.Instance.Player.MoveToPlanet(this);
     }
+    
+    #region Data
+
+    private int index;
+    private static List<Planet> planets = new List<Planet>();
+    
+    public override IData ToData()
+    {
+        return new PlanetData
+        {
+            Index = index,
+            PositionX = transform.position.x,
+            PositionY = transform.position.y,
+            TitanLeft = Titan,
+            CrystalsLeft = Crystals,
+        };
+    }
+
+    [Serializable]
+    public class PlanetData : IData
+    {
+        public int Index; // TODO: instantiate
+        public float PositionX;
+        public float PositionY;
+        public float TitanLeft;
+        public float CrystalsLeft;
+        
+        public DataObject ToObject()
+        {
+            Planet planet = planets[Index];
+            planet.transform.position = new Vector3(PositionX, PositionY);
+            planet.Titan = TitanLeft;
+            planet.Crystals = CrystalsLeft;
+            
+            return planet;
+        }
+    }
+    
+    #endregion
 }
