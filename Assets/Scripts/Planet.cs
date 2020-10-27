@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using DataManagement;
+using UIManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -20,17 +20,22 @@ public class Planet : DataObject
     [SerializeField] public int Mass;
     [SerializeField] public bool IsHomePlanet = false;
     [SerializeField] public DangerLevel DangerLevel;
-
+    public int PrefabIndex = -1;
+    public int Index;
+    
     [SerializeField] private GameObject uiPlanetInfoPrefab;
     private UIPlanetInfo uiInfo;
 
     private void Start()
     {
-        Titan = titanMax;
-        Crystals = crystalsMax;
+        if (!WasLoaded)
+        {
+            Titan = titanMax;
+            Crystals = crystalsMax;
+        }
 
-        index = planets.Count;
-        planets.Add(this);
+        if (PrefabIndex < 0)
+            PrefabIndex = PlanetGenerator.Instance.GetPlanetPrefabIndex(this);
     }
 
     private void Update()
@@ -79,15 +84,13 @@ public class Planet : DataObject
     }
     
     #region Data
-
-    private int index;
-    private static List<Planet> planets = new List<Planet>();
     
     public override IData ToData()
     {
         return new PlanetData
         {
-            Index = index,
+            Index = Index,
+            PrefabIndex = PrefabIndex,
             PositionX = transform.position.x,
             PositionY = transform.position.y,
             TitanLeft = Titan,
@@ -98,7 +101,10 @@ public class Planet : DataObject
     [Serializable]
     public class PlanetData : IData
     {
-        public int Index; // TODO: instantiate
+        public int Priority => 0;
+
+        public int Index;
+        public int PrefabIndex;
         public float PositionX;
         public float PositionY;
         public float TitanLeft;
@@ -106,10 +112,13 @@ public class Planet : DataObject
         
         public DataObject ToObject()
         {
-            Planet planet = planets[Index];
-            planet.transform.position = new Vector3(PositionX, PositionY);
+            Planet planet = PlanetGenerator.Instance.SpawnPlanet(PrefabIndex, new Vector3(PositionX, PositionY));
+            planet.Index = Index;
+            planet.PrefabIndex = PrefabIndex;
             planet.Titan = TitanLeft;
             planet.Crystals = CrystalsLeft;
+
+            planet.WasLoaded = true;
             
             return planet;
         }

@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
+using DataManagement;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
-public class Asteroid : MonoBehaviour
+public class Asteroid : DataObject
 {
     [SerializeField] private float maxHealth;
     private float health;
@@ -11,7 +13,8 @@ public class Asteroid : MonoBehaviour
     [SerializeField] public float Rarity;
     [SerializeField] private GameObject destroyEffect;
     public Vector3 Direction;
-
+    public int PrefabIndex;
+    
     private float rotationSpeed;
     private int rotationDirection;
     
@@ -66,4 +69,52 @@ public class Asteroid : MonoBehaviour
             Destroy();
         }
     }
+    
+    #region Data
+
+    public override IData ToData()
+    {
+        return new PlanetData
+        {
+            PrebafIndex = PrefabIndex,
+            PositionX = transform.position.x,
+            PositionY = transform.position.y,
+            DirectionX = Direction.x,
+            DirectionY = Direction.y,
+            Angle = transform.eulerAngles.z,
+            RotationSpeed = rotationSpeed,
+            RotationDirection = rotationDirection,
+        };
+    }
+
+    [Serializable]
+    public class PlanetData : IData
+    {
+        public int Priority => 0;
+        
+        public int PrebafIndex;
+        public float PositionX;
+        public float PositionY;
+        public float DirectionX;
+        public float DirectionY;
+        public float Angle;
+        public float RotationSpeed;
+        public int RotationDirection;
+        
+        public DataObject ToObject()
+        {
+            AsteroidsGenerator generator = FindObjectOfType<AsteroidsGenerator>();
+            Asteroid asteroid = generator.SpawAsteroid(PrebafIndex, new Vector2(PositionX, PositionY), new Vector2(DirectionX, DirectionY));
+            
+            asteroid.transform.eulerAngles = new Vector3(0, 0, Angle);
+            asteroid.rotationSpeed = RotationSpeed;
+            asteroid.rotationDirection = RotationDirection;
+
+            asteroid.WasLoaded = true;
+            
+            return asteroid;
+        }
+    }
+    
+    #endregion
 }

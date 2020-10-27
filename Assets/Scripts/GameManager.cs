@@ -1,79 +1,107 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using DataManagement;
+using UIManagement;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
-    public Spaceship Player;
-
-    [SerializeField] private GameObject winnigScreen;
-    [SerializeField] private GameObject loseScreen;
-    [SerializeField] private GameObject helpScreen;
-    [SerializeField] public UIScanner Scanner;
+    public Spaceship Player { get; private set; }
+    
     [SerializeField] public bool Cheat = false;
 
-    [SerializeField] private GameObject damageEffect;
-    private float damageEffectTimer = 0;
-    private const float DAMAGE_EFFECT_LENGTH = 0.5f;
+    private bool isPaused = false;
+    private float timeScale = 1f;
+    private bool isGameEnded = false;
+    
+    private const int LOAD_SCENE_INDEX = 0;
+    private const int STARTING_SCENE_INDEX = 1;
+    
+    public bool Pause
+    {
+        get => isPaused;
+        set
+        {
+            if (isPaused == value)
+                return;
+
+            isPaused = value;
+
+            if (isPaused)
+            {
+                timeScale = Time.timeScale;
+                Time.timeScale = 0;
+            }
+            else
+            {
+                Time.timeScale = timeScale;
+            }
+        }
+    }
 
     private void Awake()
     {
         Instance = this;
         Player = FindObjectOfType<Spaceship>();
         Upgrade.LoadUpgradeDictionary();
+        StartCoroutine(LoadGameIfExists());
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
-            Exit();
-        
-        if (damageEffectTimer > 0)
+        if (Input.GetKeyDown(KeyCode.S))
+            DataManager.Save();
+            
+        if (Input.GetKeyDown(KeyCode.L))
         {
-            damageEffectTimer -= Time.deltaTime;
-            if (damageEffectTimer <= 0)
-                damageEffect.SetActive(false);
+            SceneManager.LoadScene(LOAD_SCENE_INDEX);
         }
     }
 
-    public void ShowDamageEffect()
+    private void OnApplicationQuit()
     {
-        damageEffect.SetActive(true);
-        damageEffectTimer = DAMAGE_EFFECT_LENGTH;
+        if (!isGameEnded)
+            DataManager.Save();
     }
 
+    private IEnumerator LoadGameIfExists()
+    {
+        if (SceneManager.GetActiveScene().buildIndex == STARTING_SCENE_INDEX)
+            yield break;
+        
+        if (!DataManager.HasSaveFile())
+        {
+            SceneManager.LoadScene(STARTING_SCENE_INDEX);
+            yield break;
+        }
+        
+        Pause = true;
+        
+        yield return null;
+        
+        PlanetGenerator.Instance.ClearPlanets();
+        DataManager.Load();
+        Pause = false;
+    }
+        
     public void Win()
     {
         if (Player.IsDead)
             return;
-        
+                
         Player.Won();
-        winnigScreen.SetActive(true);
+        UIManager.Instance.Win();
     }
-
+        
     public void Lose()
     {
-        helpScreen.SetActive(false);
-        loseScreen.SetActive(true);
+        isGameEnded = true;
+        UIManager.Instance.Lose();
     }
 
     public void Exit()
     {
         Application.Quit();
-    }
-
-    public void Restart()
-    {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-    }
-
-    public void Continue()
-    {
-        winnigScreen.SetActive(false);
-    }
-
-    public void ShowHideHelp()
-    {
-        helpScreen.SetActive(!helpScreen.activeSelf);
     }
 }

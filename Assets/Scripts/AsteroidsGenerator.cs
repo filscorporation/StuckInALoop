@@ -54,14 +54,24 @@ public class AsteroidsGenerator : MonoBehaviour
         {
             if (seed >= spawnSectors[i])
             {
-                GameObject go = Instantiate(prefabs[i]);
-                go.transform.position = RandomPointOutside();
-                Asteroid asteroid = go.GetComponent<Asteroid>();
+                Vector3 position = RandomPointOutside();
                 Vector3 target = GameManager.Instance.Player.transform.position;
                 target += new Vector3(Random.Range(-1, 1f), Random.Range(-1, 1f));
-                asteroid.Direction = (target - asteroid.transform.position).normalized;
+                Vector2 direction = (target - position).normalized;
+                SpawAsteroid(i, position, direction);
             }
         }
+    }
+
+    public Asteroid SpawAsteroid(int prefabIndex, Vector2 position, Vector2 direction)
+    {
+        GameObject go = Instantiate(prefabs[prefabIndex]);
+        go.transform.position = position;
+        Asteroid asteroid = go.GetComponent<Asteroid>();
+        asteroid.Direction = direction;
+        asteroid.PrefabIndex = prefabIndex;
+
+        return asteroid;
     }
         
     private Vector2 RandomPointOutside()

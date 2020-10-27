@@ -16,11 +16,27 @@ public class CameraController : MonoBehaviour
             baseSize = Mathf.Clamp(baseSize - sizeDelta * SCROLL_SENSITIVITY, minSize, MaxSize);
         }
         
-        Vector3 target = GameManager.Instance.Player.GetCurrentPlanet().transform.position;
+        Follow();
+        Scale();
+    }
+
+    private void Follow()
+    {
+        Planet planet = GameManager.Instance.Player.GetCurrentPlanet();
+        if (planet == null)
+            return;
+        Vector3 target = planet.transform.position;
         Vector3 position = Vector3.Lerp(transform.position, target, Time.deltaTime * 3f);
         transform.position = new Vector3(position.x, position.y, transform.position.z);
-        
-        Scale();
+    }
+
+    public void FollowInstant()
+    {
+        Planet planet = GameManager.Instance.Player.GetCurrentPlanet();
+        if (planet == null)
+            return;
+        Vector3 position = planet.transform.position;
+        transform.position = new Vector3(position.x, position.y, transform.position.z);
     }
 
     private void Scale()

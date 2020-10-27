@@ -11,15 +11,6 @@ namespace DataManagement
         private const string FILE_NAME = "game_save";
         private static string FileName => Path.Combine(Application.persistentDataPath, FILE_NAME);
 
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.S))
-                Save();
-            
-            if (Input.GetKeyDown(KeyCode.L))
-                Load();
-        }
-
         public static void Save()
         {
             List<IData> objects = ((DataObject[]) FindObjectsOfType(typeof(DataObject))).Select(p => p.ToData()).ToList();
@@ -27,16 +18,23 @@ namespace DataManagement
             
             Debug.LogFormat("Saved {0} objects", objects.Count);
         }
-        
+
+        public static bool HasSaveFile() => File.Exists(FileName);
+
         public static void Load()
         {
-            if (!File.Exists(FileName))
+            Debug.Log("File " + FileName);
+            
+            if (!HasSaveFile())
             {
                 Debug.LogError("No file " + FileName);
                 return;
             }
-            
-            ((List<IData>) ByteArrayToObject(File.ReadAllBytes(FileName))).ForEach(d => d.ToObject());
+
+            foreach (IData data in ((List<IData>) ByteArrayToObject(File.ReadAllBytes(FileName))).OrderByDescending(p => p.Priority))
+            {
+                data.ToObject();
+            }
             
             Debug.LogFormat("Loaded");
         }

@@ -1,4 +1,6 @@
-﻿namespace Upgrades
+﻿using UIManagement;
+
+namespace Upgrades
 {
     public class CrystalScanner : Upgrade
     {
@@ -8,7 +10,7 @@
         public override Cost Cost => new Cost(20, 30, 5, 20);
         public override void Apply(Spaceship player)
         {
-            GameManager.Instance.Scanner.gameObject.SetActive(true);
+            UIManager.Instance.Scanner.gameObject.SetActive(true);
         }
     }
 }

@@ -1,9 +1,14 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
+using DataManagement;
+using UIManagement;
 using UnityEngine;
 
-public class Spaceship : MonoBehaviour
+public class Spaceship : DataObject
 {
+    #region Types
+
     private enum State
     {
         Orbit,
@@ -11,58 +16,82 @@ public class Spaceship : MonoBehaviour
         Move,
     }
 
-    private State state = State.Orbit;
-    public bool IsDead = false;
+    #endregion
+
+    #region Fields
     
     [SerializeField] private UIResources uiResources;
-    
     [SerializeField] public float EnergyMax;
-    private float energy = 5;
-    public float MoveEnergyToRestore = 0;
-    private float energyToRestore = 0;
     [SerializeField] public float TitanMax;
-    private float titan = 3;
     [SerializeField] public float CrystalsMax;
-    private float crystals = 0.1f;
-
     [SerializeField] public float HealthMax;
-    public float Health;
-
-    public float DefaultTitanPerSecond = 0.05f;
-    public float TitanMiningSpeed = 0;
-    public float CrystalMiningSpeed = 0;
-    public float DefaultEnergyPerSecond = 0.2f;
-    
     [SerializeField] public float Speed;
-    public float TravelCostDiscount = 0;
+    [SerializeField] private GameObject arrowPrefab;
+    [SerializeField] private GameObject canon;
+    [SerializeField] private GameObject drillIdle;
+    [SerializeField] private GameObject drillWorking;
+    [SerializeField] public GameObject Storage;
+    [SerializeField] public GameObject Accelerator;
+    [SerializeField] private AudioClip deathSound;
+    [SerializeField] private AudioClip winSound;
+    [SerializeField] private AudioClip upgradeSound;
+
+    #endregion
+
+    #region Attributes
+
+    private State state = State.Orbit;
+    private float energy = 5;
+    private float energyToRestore = 0;
+    private float energyToDrain = 0;
+    private float titan = 3;
+    private float crystals = 0.1f;
+    private bool canDrill = false;
+    
     private bool clockwise = true;
     
     private Planet currentPlanet;
     private Planet nextPlanet;
     private UIArrow nextPlanetArrow;
-    [SerializeField] private GameObject arrowPrefab;
     private float angle;
     private float lastTangentOffset = -1;
     private const float MIN_TANGET_DIST = 1f;
     private float lastDistanceToTarget = -1;
     private Vector2 startMovePoint;
 
-    public bool CanRecycle = false;
-    private bool canDrill = false;
-    [SerializeField] private GameObject canon;
-    [SerializeField] private GameObject drillIdle;
-    [SerializeField] private GameObject drillWorking;
-    [SerializeField] public GameObject Storage;
-    [SerializeField] public GameObject Accelerator;
+    #endregion
 
-    [SerializeField] private AudioClip deathSound;
-    [SerializeField] private AudioClip winSound;
-    [SerializeField] private AudioClip upgradeSound;
+    #region Properties
+
+    public bool IsDead { get; private set; } = false;
+    
+    
+    public float Health { get; private set; }
+    public float DefaultTitanPerSecond { get; set; } = 0.05f;
+    public float TitanMiningSpeed { get; set; } = 0;
+    public float CrystalMiningSpeed { get; set; } = 0;
+    public float DefaultEnergyPerSecond { get; set; } = 0.2f;
+    public float MoveEnergyToRestore { get; set; } = 0;
+    public float TravelCostDiscount { get; set; } = 0;
+
+    public bool CanRecycle { get; set; } = false;
+
+    public bool CanDrill
+    {
+        get => canDrill;
+        set
+        {
+            canDrill = value;
+            drillIdle.SetActive(canDrill);
+        }
+    }
 
     private Vector3 forward => -transform.right;
     private float forwardSpeed => Speed / Mathf.PI / 2;
 
     public Cost Resources => new Cost(energy, titan, crystals, 0);
+
+    #endregion
 
     private void Start()
     {
@@ -77,10 +106,16 @@ public class Spaceship : MonoBehaviour
                 currentPlanet = planet;
             }
         }
+
+        if (!Mathf.Approximately(energyToDrain, 0))
+            StartCoroutine(DrainEnergy(energyToDrain));
     }
 
     private void Update()
     {
+        if (GameManager.Instance.Pause)
+            return;
+        
         UpdateSpaceship();
         UpdateUI();
         
@@ -113,7 +148,7 @@ public class Spaceship : MonoBehaviour
             titan = TitanMax;
 
         bool drilled = false;
-        if (canDrill)
+        if (CanDrill)
         {
             if (state != State.Move && currentPlanet != null)
             {
@@ -149,8 +184,8 @@ public class Spaceship : MonoBehaviour
             }
         }
         
-        drillIdle.SetActive(canDrill && !drilled);
-        drillWorking.SetActive(canDrill && drilled);
+        drillIdle.SetActive(state != State.Move && CanDrill && !drilled);
+        drillWorking.SetActive(state != State.Move && CanDrill && drilled);
 
         CheckIfDead();
     }
@@ -235,7 +270,7 @@ public class Spaceship : MonoBehaviour
         angle = (angle + (clockwise ? angleSpeed : -angleSpeed)) % 360;
         Vector3 offset = AngleToOrbitPoint(angle, r);
         transform.position = currentPlanet.transform.position + offset;
-        transform.eulerAngles = new Vector3(0, 0, 180 - angle);
+        transform.eulerAngles = new Vector3(0, 0, angle + (clockwise ? -90 : 90));
     }
 
     private void TryStartMovementToPlanet()
@@ -268,7 +303,9 @@ public class Spaceship : MonoBehaviour
             lastTangentOffset = -1;
             startMovePoint = transform.position;
             Move();
-            StartCoroutine(DrainEnergy());
+            StartCoroutine(DrainEnergy(EnergyToMoveToPlanet(nextPlanet)));
+
+            OnLeavePlanetOrbit();
 
             return;
         }
@@ -281,7 +318,7 @@ public class Spaceship : MonoBehaviour
         Vector2 lastPosition = transform.position;
         float lastRotation = transform.eulerAngles.z;
         
-        transform.position += forward * Time.deltaTime * forwardSpeed;
+        transform.position += forward * (Time.deltaTime * forwardSpeed);
 
         float dist = Vector3.Distance(transform.position, nextPlanet.transform.position);
 
@@ -300,6 +337,8 @@ public class Spaceship : MonoBehaviour
             
             if (nextPlanetArrow != null)
                 Destroy(nextPlanetArrow.gameObject);
+            
+            OnEnterPlanetOrbit();
             
             return;
         }
@@ -348,6 +387,17 @@ public class Spaceship : MonoBehaviour
         nextPlanetArrow.Initialize(nextPlanet.transform);
     }
 
+    private void OnLeavePlanetOrbit()
+    {
+        
+    }
+
+    private void OnEnterPlanetOrbit()
+    {
+        drillIdle.transform.localScale = new Vector3(1, clockwise ? -1 : 1, 1);
+        drillWorking.transform.localScale = new Vector3(1, clockwise ? -1 : 1, 1);
+    }
+
     public Planet GetCurrentPlanet()
     {
         return currentPlanet;
@@ -356,7 +406,7 @@ public class Spaceship : MonoBehaviour
     public void TakeDamage(float damage)
     {
         Health -= damage;
-        GameManager.Instance.ShowDamageEffect();
+        UIManager.Instance.ShowDamageEffect();
     }
 
     public void Recycle(float amount)
@@ -369,12 +419,6 @@ public class Spaceship : MonoBehaviour
     public void EnableCanon()
     {
         canon.SetActive(true);
-    }
-
-    public void EnableDrill()
-    {
-        canDrill = true;
-        drillIdle.SetActive(true);
     }
 
     public IEnumerator Repair(float time)
@@ -414,9 +458,9 @@ public class Spaceship : MonoBehaviour
     
     #region Utility
 
-    private IEnumerator DrainEnergy()
+    private IEnumerator DrainEnergy(float cost)
     {
-        float cost = EnergyToMoveToPlanet(nextPlanet);
+        energyToDrain = cost;
         energyToRestore = cost * MoveEnergyToRestore;
         float dist = Vector3.Distance(transform.position, nextPlanet.transform.position);
         float time = dist / forwardSpeed * 0.8f;
@@ -424,11 +468,13 @@ public class Spaceship : MonoBehaviour
 
         while (time > 0)
         {
+            energyToDrain -= drainStep * Time.deltaTime;
             energy -= drainStep * Time.deltaTime;
             time -= Time.deltaTime;
             yield return null;
         }
 
+        energyToDrain = 0;
         if (!Mathf.Approximately(energyToRestore, 0))
         {
             energy += energyToRestore;
@@ -451,18 +497,18 @@ public class Spaceship : MonoBehaviour
 
     private Vector2 AngleToOrbitPoint(float alpha, float r)
     {
-        return new Vector2(Mathf.Sin(Mathf.Deg2Rad * alpha) * r, Mathf.Cos(Mathf.Deg2Rad * alpha) * r);
+        return new Vector2(Mathf.Cos(Mathf.Deg2Rad * alpha) * r, Mathf.Sin(Mathf.Deg2Rad * alpha) * r);
     }
 
     private float OrbitPointToAngle(Vector2 point)
     {
-        return Mathf.Atan2(point.x - currentPlanet.transform.position.x, point.y - currentPlanet.transform.position.y) * Mathf.Rad2Deg;
+        Vector2 position = currentPlanet.transform.position;
+        return Mathf.Atan2(point.y - position.y, point.x - position.x) * Mathf.Rad2Deg;
     }
 
     public float EnergyToMoveToPlanet(Planet planet)
     {
         float distance = Vector3.Distance(currentPlanet.transform.position, planet.transform.position);
-
         return distance * currentPlanet.Mass / 2 * (1 - TravelCostDiscount);
     }
 
@@ -481,6 +527,114 @@ public class Spaceship : MonoBehaviour
         float d = Mathf.Abs(a * x2 + b * y2 - c) / Mathf.Sqrt(a * a + b * b);
 
         return d;
+    }
+    
+    #endregion
+    
+    #region Data
+    
+    public override IData ToData()
+    {
+        Vector3 position = transform.position;
+        
+        return new SpaceshipData
+        {
+            SpaceshipState = (int)state,
+            PositionX = position.x,
+            PositionY = position.y,
+            EnergyMax = EnergyMax,
+            Energy = energy,
+            MoveEnergyToRestore = MoveEnergyToRestore,
+            EnergyToRestore = energyToRestore,
+            EnergyToDrain = energyToDrain,
+            TitanMax = TitanMax,
+            Titan = titan,
+            CrystalsMax = CrystalsMax,
+            Crystals = crystals,
+            HealthMax = HealthMax,
+            Health = Health,
+            DefaultTitanPerSecond = DefaultTitanPerSecond,
+            TitanMiningSpeed = TitanMiningSpeed,
+            CrystalMiningSpeed = CrystalMiningSpeed,
+            DefaultEnergyPerSecond = DefaultEnergyPerSecond,
+            CanRecycle = CanRecycle,
+            CanDrill = CanDrill,
+            Speed = Speed,
+            TravelCostDiscount = TravelCostDiscount,
+            Clockwise = clockwise,
+            CurrentPlanetIndex = currentPlanet == null ? -1 : currentPlanet.Index,
+            NextPlanetIndex = nextPlanet == null ? -1 : nextPlanet.Index,
+        };
+    }
+
+    [Serializable]
+    public class SpaceshipData : IData
+    {
+        public int Priority => -1;
+        
+        public int SpaceshipState;
+        public float PositionX;
+        public float PositionY;
+        public float EnergyMax;
+        public float Energy;
+        public float MoveEnergyToRestore;
+        public float EnergyToRestore;
+        public float EnergyToDrain;
+        public float TitanMax;
+        public float Titan;
+        public float CrystalsMax;
+        public float Crystals;
+        public float HealthMax;
+        public float Health;
+        public float DefaultTitanPerSecond;
+        public float TitanMiningSpeed;
+        public float CrystalMiningSpeed;
+        public float DefaultEnergyPerSecond;
+        public bool CanRecycle;
+        public bool CanDrill;
+        public float Speed;
+        public float TravelCostDiscount;
+        public bool Clockwise;
+        public int CurrentPlanetIndex;
+        public int NextPlanetIndex;
+
+        public DataObject ToObject()
+        {
+            Spaceship spaceship = GameManager.Instance.Player;
+
+            spaceship.state = (State) SpaceshipState;
+            spaceship.transform.position = new Vector3(PositionX, PositionY);
+            spaceship.EnergyMax = EnergyMax;
+            spaceship.energy = Energy;
+            spaceship.MoveEnergyToRestore = MoveEnergyToRestore;
+            spaceship.energyToRestore = EnergyToRestore;
+            spaceship.energyToDrain = EnergyToDrain;
+            spaceship.TitanMax = TitanMax;
+            spaceship.titan = Titan;
+            spaceship.CrystalsMax = CrystalsMax;
+            spaceship.crystals = Crystals;
+            spaceship.HealthMax = HealthMax;
+            spaceship.Health = Health;
+            spaceship.DefaultTitanPerSecond = DefaultTitanPerSecond;
+            spaceship.TitanMiningSpeed = TitanMiningSpeed;
+            spaceship.CrystalMiningSpeed = CrystalMiningSpeed;
+            spaceship.DefaultEnergyPerSecond = DefaultEnergyPerSecond;
+            spaceship.CanRecycle = CanRecycle;
+            spaceship.CanDrill = CanDrill;
+            spaceship.Speed = Speed;
+            spaceship.TravelCostDiscount = TravelCostDiscount;
+            spaceship.clockwise = Clockwise;
+            spaceship.currentPlanet = CurrentPlanetIndex == -1 ? null : PlanetGenerator.Instance.GetPlanetByIndex(CurrentPlanetIndex);
+            spaceship.nextPlanet = NextPlanetIndex == -1 ? null : PlanetGenerator.Instance.GetPlanetByIndex(NextPlanetIndex);
+            
+            spaceship.angle = spaceship.OrbitPointToAngle(spaceship.transform.position);
+
+            FindObjectOfType<CameraController>().FollowInstant();
+
+            spaceship.WasLoaded = true;
+
+            return spaceship;
+        }
     }
     
     #endregion

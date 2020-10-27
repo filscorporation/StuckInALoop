@@ -11,7 +11,7 @@
         {
             player.TitanMiningSpeed += 0.33f;
             player.CrystalMiningSpeed += 0.33f;
-            player.EnableDrill();
+            player.CanDrill = true;
         }
     }
 }
