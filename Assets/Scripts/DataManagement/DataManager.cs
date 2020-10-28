@@ -21,6 +21,12 @@ namespace DataManagement
 
         public static bool HasSaveFile() => File.Exists(FileName);
 
+        public static void ClearSave()
+        {
+            if (HasSaveFile())
+                File.Delete(FileName);
+        }
+
         public static void Load()
         {
             Debug.Log("File " + FileName);

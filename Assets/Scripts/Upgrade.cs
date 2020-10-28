@@ -60,11 +60,25 @@ public struct Cost
     }
 }
 
+[Serializable]
+public struct UpgradeData
+{
+    public UpgradeData(Upgrade upgrade)
+    {
+        Name = upgrade.Name;
+        TimeLeft = upgrade.TimeLeft;
+    }
+    
+    public string Name;
+    public float TimeLeft;
+}
+
 public abstract class Upgrade
 {
-    public static Dictionary<string, Upgrade> UpgradeDictionary = new Dictionary<string, Upgrade>();
+    public static readonly Dictionary<string, Upgrade> UpgradeDictionary = new Dictionary<string, Upgrade>();
+    public static IEnumerable<Upgrade> ActiveUpgrades => UpgradeDictionary.Values.Where(u => u.Installed && Mathf.Approximately(u.TimeLeft, 0));
 
-    public static void LoadUpgradeDictionary()
+    public static void InitializeUpgradeDictionary()
     {
         foreach (Type type in Assembly.GetAssembly(typeof(Upgrade)).GetTypes()
             .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(Upgrade))))
@@ -73,12 +87,27 @@ public abstract class Upgrade
             UpgradeDictionary[skill.Name] = skill;
         }
     }
+
+    public static List<UpgradeData> Save()
+    {
+        return UpgradeDictionary.Where(p => p.Value.Installed).Select(p => new UpgradeData(p.Value)).ToList();
+    }
+
+    public static void Load(List<UpgradeData> upgrades)
+    {
+        foreach (UpgradeData upgradeData in upgrades)
+        {
+            UpgradeDictionary[upgradeData.Name].Installed = true;
+            UpgradeDictionary[upgradeData.Name].TimeLeft = upgradeData.TimeLeft;
+        }
+    }
     
     public abstract int Level { get; }
     public abstract string Name { get; }
     public abstract string Description { get; }
     public abstract Cost Cost { get; }
     public abstract void Apply(Spaceship player);
+    public virtual void ShowComponent(Spaceship player) { }
 
     public bool Installed = false;
     public float TimeLeft = 0;

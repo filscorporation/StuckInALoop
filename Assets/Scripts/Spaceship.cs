@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DataManagement;
 using UIManagement;
 using UnityEngine;
@@ -47,6 +48,7 @@ public class Spaceship : DataObject
     private float titan = 3;
     private float crystals = 0.1f;
     private bool canDrill = false;
+    private readonly List<Upgrade> upgradesInProgress = new List<Upgrade>();
     
     private bool clockwise = true;
     
@@ -64,7 +66,6 @@ public class Spaceship : DataObject
     #region Properties
 
     public bool IsDead { get; private set; } = false;
-    
     
     public float Health { get; private set; }
     public float DefaultTitanPerSecond { get; set; } = 0.05f;
@@ -97,15 +98,24 @@ public class Spaceship : DataObject
     {
         Health = HealthMax;
         float minDist = -1;
-        foreach (Planet planet in FindObjectsOfType<Planet>())
+        
+        if (currentPlanet == null)
         {
-            float newDist = Vector3.Distance(planet.transform.position, transform.position);
-            if (minDist < 0 || newDist < minDist)
+            foreach (Planet planet in FindObjectsOfType<Planet>())
             {
-                minDist = newDist;
-                currentPlanet = planet;
+                float newDist = Vector3.Distance(planet.transform.position, transform.position);
+                if (minDist < 0 || newDist < minDist)
+                {
+                    minDist = newDist;
+                    currentPlanet = planet;
+                }
             }
+            Orbit();
+            FindObjectOfType<CameraController>().FollowInstant();
         }
+
+        if (state != State.Move)
+            OnEnterPlanetOrbit();
 
         if (!Mathf.Approximately(energyToDrain, 0))
             StartCoroutine(DrainEnergy(energyToDrain));
@@ -117,6 +127,7 @@ public class Spaceship : DataObject
             return;
         
         UpdateSpaceship();
+        ProcessUpgrades();
         UpdateUI();
         
         switch (state)
@@ -190,6 +201,28 @@ public class Spaceship : DataObject
         CheckIfDead();
     }
 
+    private void ProcessUpgrades()
+    {
+        List<Upgrade> upgradesToRemove = new List<Upgrade>();
+        foreach (Upgrade upgrade in upgradesInProgress)
+        {
+            upgrade.TimeLeft -= Time.deltaTime;
+
+            if (upgrade.TimeLeft <= 0)
+            {
+                upgrade.TimeLeft = 0;
+                upgrade.Apply(this);
+                upgradesToRemove.Add(upgrade);
+                GetComponent<AudioSource>().PlayOneShot(upgradeSound);
+            }
+        }
+
+        foreach (Upgrade upgrade in upgradesToRemove)
+        {
+            upgradesInProgress.Remove(upgrade);
+        }
+    }
+
     private void CheckIfDead()
     {
         if (IsDead)
@@ -215,22 +248,14 @@ public class Spaceship : DataObject
 
     public void ApplyUpgrade(Upgrade upgrade)
     {
-        StartCoroutine(ApplyUpgradeCoroutine(upgrade));
-        GetComponent<AudioSource>().PlayOneShot(upgradeSound);
-    }
-
-    private IEnumerator ApplyUpgradeCoroutine(Upgrade upgrade)
-    {
-        upgrade.TimeLeft = upgrade.Cost.Time;
-        
-        while (!GameManager.Instance.Cheat && upgrade.TimeLeft > 0)
+        if (GameManager.Instance.Cheat)
         {
-            yield return null;
-            upgrade.TimeLeft -= Time.deltaTime;
+            upgrade.Apply(this);
+            return;
         }
-
-        upgrade.TimeLeft = 0;
-        upgrade.Apply(this);
+        
+        upgrade.TimeLeft = upgrade.Cost.Time;
+        upgradesInProgress.Add(upgrade);
     }
 
     private void UpdateCurrentPlanetDangerLevelEffect()
@@ -396,6 +421,7 @@ public class Spaceship : DataObject
     {
         drillIdle.transform.localScale = new Vector3(1, clockwise ? -1 : 1, 1);
         drillWorking.transform.localScale = new Vector3(1, clockwise ? -1 : 1, 1);
+        Storage.transform.localScale = new Vector3(1, clockwise ? -1 : 1, 1);
     }
 
     public Planet GetCurrentPlanet()
@@ -535,13 +561,15 @@ public class Spaceship : DataObject
     
     public override IData ToData()
     {
-        Vector3 position = transform.position;
+        Transform tr = transform;
+        Vector3 position = tr.position;
         
         return new SpaceshipData
         {
             SpaceshipState = (int)state,
             PositionX = position.x,
             PositionY = position.y,
+            Angle = tr.eulerAngles.z,
             EnergyMax = EnergyMax,
             Energy = energy,
             MoveEnergyToRestore = MoveEnergyToRestore,
@@ -564,6 +592,7 @@ public class Spaceship : DataObject
             Clockwise = clockwise,
             CurrentPlanetIndex = currentPlanet == null ? -1 : currentPlanet.Index,
             NextPlanetIndex = nextPlanet == null ? -1 : nextPlanet.Index,
+            UpgradeDatas = Upgrade.Save(),
         };
     }
 
@@ -575,6 +604,7 @@ public class Spaceship : DataObject
         public int SpaceshipState;
         public float PositionX;
         public float PositionY;
+        public float Angle;
         public float EnergyMax;
         public float Energy;
         public float MoveEnergyToRestore;
@@ -597,13 +627,16 @@ public class Spaceship : DataObject
         public bool Clockwise;
         public int CurrentPlanetIndex;
         public int NextPlanetIndex;
-
+        public List<UpgradeData> UpgradeDatas;
+        
         public DataObject ToObject()
         {
             Spaceship spaceship = GameManager.Instance.Player;
 
             spaceship.state = (State) SpaceshipState;
-            spaceship.transform.position = new Vector3(PositionX, PositionY);
+            Transform tr = spaceship.transform;
+            tr.position = new Vector3(PositionX, PositionY);
+            tr.eulerAngles = new Vector3(0, 0, Angle);
             spaceship.EnergyMax = EnergyMax;
             spaceship.energy = Energy;
             spaceship.MoveEnergyToRestore = MoveEnergyToRestore;
@@ -628,8 +661,12 @@ public class Spaceship : DataObject
             spaceship.nextPlanet = NextPlanetIndex == -1 ? null : PlanetGenerator.Instance.GetPlanetByIndex(NextPlanetIndex);
             
             spaceship.angle = spaceship.OrbitPointToAngle(spaceship.transform.position);
-
-            FindObjectOfType<CameraController>().FollowInstant();
+            Upgrade.Load(UpgradeDatas);
+            spaceship.upgradesInProgress.AddRange(Upgrade.UpgradeDictionary.Values.Where(u => u.Installed && u.TimeLeft > Mathf.Epsilon));
+            foreach (Upgrade upgrade in Upgrade.ActiveUpgrades)
+            {
+                upgrade.ShowComponent(spaceship);
+            }
 
             spaceship.WasLoaded = true;
 

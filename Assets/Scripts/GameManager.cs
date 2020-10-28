@@ -44,7 +44,7 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
         Player = FindObjectOfType<Spaceship>();
-        Upgrade.LoadUpgradeDictionary();
+        Upgrade.InitializeUpgradeDictionary();
         StartCoroutine(LoadGameIfExists());
     }
 
@@ -80,9 +80,9 @@ public class GameManager : MonoBehaviour
         
         yield return null;
         
-        PlanetGenerator.Instance.ClearPlanets();
         DataManager.Load();
         Pause = false;
+        FindObjectOfType<CameraController>().FollowInstant();
     }
         
     public void Win()
@@ -103,5 +103,12 @@ public class GameManager : MonoBehaviour
     public void Exit()
     {
         Application.Quit();
+    }
+
+    public void Restart()
+    {
+        Pause = false;
+        DataManager.ClearSave();
+        SceneManager.LoadScene(STARTING_SCENE_INDEX);
     }
 }

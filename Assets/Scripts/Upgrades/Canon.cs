@@ -9,6 +9,13 @@
         
         public override void Apply(Spaceship player)
         {
+            ShowComponent(player);
+        }
+
+        public override void ShowComponent(Spaceship player)
+        {
+            base.ShowComponent(player);
+            
             player.EnableCanon();
         }
     }
