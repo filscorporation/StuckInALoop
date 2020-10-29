@@ -50,6 +50,12 @@ public class Asteroid : DataObject
             TakeDamage(1f);
             return;
         }
+
+        if (other.gameObject.GetComponent<Rocket>() != null)
+        {
+            TakeDamage(3f);
+            return;
+        }
         
         Destroy();
     }

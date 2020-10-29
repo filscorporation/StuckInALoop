@@ -29,6 +29,7 @@ public class Spaceship : DataObject
     [SerializeField] public float Speed;
     [SerializeField] private GameObject arrowPrefab;
     [SerializeField] private GameObject canon;
+    [SerializeField] private GameObject rocketLauncher;
     [SerializeField] private GameObject drillIdle;
     [SerializeField] private GameObject drillWorking;
     [SerializeField] public GameObject Storage;
@@ -445,6 +446,11 @@ public class Spaceship : DataObject
     public void EnableCanon()
     {
         canon.SetActive(true);
+    }
+
+    public void EnableRocketLauncher()
+    {
+        rocketLauncher.SetActive(true);
     }
 
     public IEnumerator Repair(float time)
