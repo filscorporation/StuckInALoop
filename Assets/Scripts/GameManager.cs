@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using DataManagement;
+using MapManagement;
 using UIManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -72,6 +73,7 @@ public class GameManager : MonoBehaviour
         
         if (!DataManager.HasSaveFile())
         {
+            //WorldGenerator.Instance.Generate(new WorldParams(WorldLevel.Universe, 3, 1));
             SceneManager.LoadScene(STARTING_SCENE_INDEX);
             yield break;
         }
